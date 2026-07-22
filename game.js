@@ -1,109 +1,176 @@
 /* =========================
-   Space Drift
-   Cozy space game with smooth drag steering.
+   Synthwave Signal
+   Cozy music-forward drift game
 ========================= */
 
-const canvas = document.getElementById('space');
+const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 
 const hud = document.getElementById('hud');
-const scoreValue = document.getElementById('scoreValue');
-const harmonyValue = document.getElementById('harmonyValue');
-const zoneValue = document.getElementById('zoneValue');
-const shardValue = document.getElementById('shardValue');
+const chapterNameEl = document.getElementById('chapterName');
+const scoreValueEl = document.getElementById('scoreValue');
+const signalValueEl = document.getElementById('signalValue');
+const moodValueEl = document.getElementById('moodValue');
 
-const startScreen = document.getElementById('startScreen');
+const menuScreen = document.getElementById('menuScreen');
 const pauseScreen = document.getElementById('pauseScreen');
-const touchZone = document.getElementById('touchZone');
+const completeScreen = document.getElementById('completeScreen');
+const banner = document.getElementById('banner');
+
+const touchRail = document.getElementById('touchRail');
 const thumb = document.getElementById('thumb');
-const finishBanner = document.getElementById('finishBanner');
-const finishText = document.getElementById('finishText');
 
-let W = 0;
-let H = 0;
-let DPR = 1;
-let last = 0;
-let running = false;
-let paused = false;
+const menuButtons = document.getElementById('menuButtons');
+const pauseButtons = document.getElementById('pauseButtons');
+const completeButtons = document.getElementById('completeButtons');
+
+const completeTitle = document.getElementById('completeTitle');
+const completeText = document.getElementById('completeText');
+const finalScoreEl = document.getElementById('finalScore');
+const finalNotesEl = document.getElementById('finalNotes');
+const finalRankEl = document.getElementById('finalRank');
+
+let W = 0, H = 0, DPR = 1, last = 0;
 let started = false;
+let paused = false;
+let playing = false;
 
-const state = {
-  score: 0,
-  harmony: 100,
-  shards: 0,
-  distance: 0,
-  combo: 0,
-  zoneIndex: 0,
-  zoneTimer: 0,
-  bannerTimer: 0,
-  shake: 0,
-  driftTime: 0,
-};
-
-const zones = [
+const chapters = [
   {
-    name: 'Dawn Drift',
-    sky0: '#07101f',
-    sky1: '#0b1330',
-    nebula: 'rgba(130, 160, 255, 0.16)',
-    accent: '#c9d7ff',
-    starTint: 'rgba(255,255,255,0.88)',
+    name: 'Neon Highway',
+    mood: 'Warm',
+    palette: {
+      sky0: '#0b1224',
+      sky1: '#1a1740',
+      sun: 'rgba(255,122,198,0.92)',
+      accent: '#95f3ff',
+      note: '#f4fdff',
+      grid: 'rgba(255,255,255,0.10)'
+    },
+    tempo: 92,
+    root: 110,
+    chords: [
+      [110, 138.59, 164.81],
+      [123.47, 155.56, 185.00],
+      [98, 123.47, 146.83],
+      [110, 138.59, 164.81],
+    ],
+    bassPattern: [0, 0, 7, 0, 0, 5, 7, 0],
+    arp: [0, 7, 12, 7, 0, 7, 14, 7],
+    noteGoal: 22,
+    intro: 'A quiet neon runway. Follow the melody trail and rebuild the signal.'
   },
   {
-    name: 'Moon Velvet',
-    sky0: '#090e1a',
-    sky1: '#13192b',
-    nebula: 'rgba(188, 143, 255, 0.14)',
-    accent: '#e4d0ff',
-    starTint: 'rgba(236,228,255,0.90)',
+    name: 'Cassette Moon',
+    mood: 'Blue',
+    palette: {
+      sky0: '#081120',
+      sky1: '#121d43',
+      sun: 'rgba(167,129,255,0.82)',
+      accent: '#d8c6ff',
+      note: '#f9f4ff',
+      grid: 'rgba(255,255,255,0.09)'
+    },
+    tempo: 88,
+    root: 98,
+    chords: [
+      [98, 123.47, 146.83],
+      [110, 138.59, 164.81],
+      [92.50, 116.54, 138.59],
+      [98, 123.47, 146.83],
+    ],
+    bassPattern: [0, 0, 5, 0, 0, 7, 5, 0],
+    arp: [0, 7, 12, 10, 7, 0, 14, 12],
+    noteGoal: 24,
+    intro: 'A softer chapter with long chords and drifting, moonlit notes.'
   },
   {
-    name: 'Aurora Bloom',
-    sky0: '#05111c',
-    sky1: '#082436',
-    nebula: 'rgba(120, 255, 226, 0.12)',
-    accent: '#b5fff1',
-    starTint: 'rgba(225,255,249,0.92)',
+    name: 'Aurora Tape',
+    mood: 'Glow',
+    palette: {
+      sky0: '#04111c',
+      sky1: '#0f2b41',
+      sun: 'rgba(106,255,225,0.78)',
+      accent: '#b5fff1',
+      note: '#f3fffd',
+      grid: 'rgba(255,255,255,0.08)'
+    },
+    tempo: 94,
+    root: 123.47,
+    chords: [
+      [123.47, 155.56, 184.99],
+      [138.59, 174.61, 207.65],
+      [130.81, 164.81, 196.00],
+      [123.47, 155.56, 184.99],
+    ],
+    bassPattern: [0, 3, 5, 0, 0, 7, 3, 0],
+    arp: [0, 7, 12, 14, 12, 7, 0, 14],
+    noteGoal: 26,
+    intro: 'The signal turns bright and clear. The synths bloom around you.'
   },
   {
-    name: 'Deep Silence',
-    sky0: '#04060e',
-    sky1: '#080b17',
-    nebula: 'rgba(255, 160, 190, 0.08)',
-    accent: '#f0d7ff',
-    starTint: 'rgba(255,255,255,0.86)',
+    name: 'Lost Transmission',
+    mood: 'Silver',
+    palette: {
+      sky0: '#05060d',
+      sky1: '#14131f',
+      sun: 'rgba(255,173,203,0.60)',
+      accent: '#ffe0ed',
+      note: '#ffffff',
+      grid: 'rgba(255,255,255,0.08)'
+    },
+    tempo: 96,
+    root: 98,
+    chords: [
+      [98, 123.47, 146.83],
+      [110, 138.59, 164.81],
+      [123.47, 155.56, 184.99],
+      [110, 138.59, 164.81],
+    ],
+    bassPattern: [0, 0, 7, 5, 0, 0, 3, 0],
+    arp: [0, 7, 12, 7, 14, 12, 7, 0],
+    noteGoal: 28,
+    intro: 'Final layer. A little brighter, a little fuller, a little more alive.'
   }
 ];
 
-const input = {
-  active: false,
-  pointerId: null,
-  targetX: 0.5,
-  rawX: 0.5,
-  touchOnly: true,
+const state = {
+  chapterIndex: 0,
+  score: 0,
+  notes: 0,
+  signal: 0,
+  trackTime: 0,
+  beat: 0,
+  combo: 0,
+  moodPulse: 0,
+  bannerTimer: 0,
+  complete: false,
+  aimX: 0.5,
+  spawnTimer: 0,
+  progressGlow: 0,
 };
 
 const ship = {
   x: 0.5,
-  y: 0.78,
+  y: 0.79,
+  targetX: 0.5,
   vx: 0,
-  glow: 0,
   tilt: 0,
+  bob: 0,
 };
 
 let stars = [];
-let dust = [];
-let shards = [];
-let comets = [];
-let planets = [];
+let notes = [];
 let rings = [];
-let ripples = [];
+let streaks = [];
+let mountains = [];
+let sun = { x: 0.75, y: 0.28, r: 95 };
 
 let audio = null;
+let beatAccumulator = 0;
 
 function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
 function lerp(a, b, t) { return a + (b - a) * t; }
-function easeOut(t) { return 1 - Math.pow(1 - t, 3); }
 function rand(min, max) { return Math.random() * (max - min) + min; }
 function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 
@@ -116,691 +183,650 @@ function resize() {
   canvas.height = Math.floor(H * DPR);
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
 
-  ship.y = H * 0.75;
-  if (!started) {
-    ship.x = W * 0.5;
-  }
-
-  buildWorld(true);
+  sun.r = Math.min(W, H) * 0.12;
+  ship.y = H * 0.80;
+  buildStaticWorld(true);
   draw(0);
 }
 
 window.addEventListener('resize', resize, { passive: true });
 
-function buildWorld(force = false) {
+function buildStaticWorld(force = false) {
   if (force || stars.length === 0) {
-    stars = Array.from({ length: 220 }, () => ({
+    stars = Array.from({ length: 180 }, () => ({
       x: Math.random(),
       y: Math.random(),
-      z: rand(0.2, 1.0),
-      tw: rand(0, Math.PI * 2),
+      z: rand(0.25, 1.0),
+      tw: rand(0, Math.PI * 2)
     }));
   }
 
-  if (force || planets.length === 0) {
-    planets = [
-      { x: 0.18, y: 0.18, r: 58, color: 'rgba(152, 178, 255, 0.18)', speed: 0.006 },
-      { x: 0.82, y: 0.24, r: 92, color: 'rgba(180, 131, 255, 0.12)', speed: 0.004 },
-      { x: 0.76, y: 0.68, r: 38, color: 'rgba(141, 246, 226, 0.10)', speed: 0.010 },
+  if (force || mountains.length === 0) {
+    mountains = [
+      { x: 0.00, w: 0.22, h: 0.16 },
+      { x: 0.15, w: 0.34, h: 0.22 },
+      { x: 0.42, w: 0.30, h: 0.17 },
+      { x: 0.68, w: 0.27, h: 0.24 },
+      { x: 0.84, w: 0.22, h: 0.18 },
     ];
   }
 }
 
-function startAudio() {
-  if (audio) return;
-  const Ctx = window.AudioContext || window.webkitAudioContext;
-  if (!Ctx) return;
-
-  const ctxAudio = new Ctx();
-  const master = ctxAudio.createGain();
-  master.gain.value = 0.02;
-
-  const low = ctxAudio.createOscillator();
-  low.type = 'sine';
-  low.frequency.value = 54;
-
-  const mid = ctxAudio.createOscillator();
-  mid.type = 'triangle';
-  mid.frequency.value = 108;
-
-  const lfo = ctxAudio.createOscillator();
-  lfo.type = 'sine';
-  lfo.frequency.value = 0.05;
-
-  const lfoGain = ctxAudio.createGain();
-  lfoGain.gain.value = 6;
-
-  const lowGain = ctxAudio.createGain();
-  const midGain = ctxAudio.createGain();
-  lowGain.gain.value = 0.6;
-  midGain.gain.value = 0.2;
-
-  const filter = ctxAudio.createBiquadFilter();
-  filter.type = 'lowpass';
-  filter.frequency.value = 420;
-
-  lfo.connect(lfoGain);
-  lfoGain.connect(low.frequency);
-  lfoGain.connect(mid.frequency);
-
-  low.connect(lowGain);
-  mid.connect(midGain);
-  lowGain.connect(filter);
-  midGain.connect(filter);
-  filter.connect(master);
-  master.connect(ctxAudio.destination);
-
-  low.start();
-  mid.start();
-  lfo.start();
-
-  audio = { ctxAudio, master, low, mid, filter };
+function currentChapter() {
+  return chapters[state.chapterIndex];
 }
 
-function setAudioMood() {
-  if (!audio) return;
-  const energy = clamp(0.35 + state.harmony / 180, 0.26, 0.9);
-  audio.master.gain.value = 0.018 + energy * 0.018;
-  audio.filter.frequency.value = 280 + state.zoneIndex * 60 + state.combo * 8;
+function ensureButtons() {
+  makeButton(menuButtons, 'Play Chapter 1', () => startChapter(0), false);
+  makeButton(menuButtons, 'Chill Mode', () => startChapter(0), true);
+
+  makeButton(pauseButtons, 'Resume', () => resumeGame(), false);
+  makeButton(pauseButtons, 'Restart', () => startChapter(state.chapterIndex), true);
+  makeButton(pauseButtons, 'Menu', () => goMenu(), true);
+
+  makeButton(completeButtons, 'Next Chapter', () => startChapter(Math.min(state.chapterIndex + 1, chapters.length - 1)), false);
+  makeButton(completeButtons, 'Replay', () => startChapter(state.chapterIndex), true);
+  makeButton(completeButtons, 'Menu', () => goMenu(), true);
 }
 
-function makeFallbackButton(text, kind, onClick) {
+function makeButton(parent, label, onClick, secondary) {
   const btn = document.createElement('button');
-  btn.textContent = text;
-  if (kind === 'secondary') btn.className = 'secondary';
-  btn.addEventListener('click', onClick);
-  return btn;
-}
+  btn.textContent = label;
+  if (secondary) btn.className = 'secondary';
 
-function makeGlassButton(text, onClick, size = 26) {
-  if (typeof window.Button === 'function') {
-    const btn = new window.Button({
-      text,
-      size,
-      type: 'pill',
-      warp: true,
-      tintOpacity: 0.28,
-      onClick,
-    });
-    return btn.element;
+  // Try the Liquid Glass button if the library is available.
+  if (window.Button && typeof window.Button === 'function') {
+    try {
+      const glassBtn = new window.Button({
+        text: label,
+        onClick,
+        type: 'pill',
+        warp: true,
+        tintOpacity: secondary ? 0.22 : 0.34
+      });
+      if (glassBtn && glassBtn.element) {
+        glassBtn.element.addEventListener('click', onClick);
+        parent.appendChild(glassBtn.element);
+        return;
+      }
+    } catch (err) {
+      // Fallback below.
+    }
   }
-  const btn = makeFallbackButton(text, '', onClick);
-  return btn;
+
+  btn.addEventListener('click', onClick);
+  parent.appendChild(btn);
 }
 
-function clearNode(node) {
-  while (node.firstChild) node.removeChild(node.firstChild);
+function boot() {
+  ensureButtons();
+  resize();
+  touchRail.classList.add('hidden');
+  requestAnimationFrame(loop);
 }
 
-function buildButtons() {
-  const menuButtons = document.getElementById('menuButtons');
-  const pauseButtons = document.getElementById('pauseButtons');
+function startChapter(index) {
+  state.chapterIndex = clamp(index, 0, chapters.length - 1);
+  const chapter = currentChapter();
 
-  clearNode(menuButtons);
-  clearNode(pauseButtons);
-
-  const startBtn = makeGlassButton('Start Drift', () => {
-    beginRun();
-  }, 28);
-
-  const modeBtn = makeGlassButton('Relax Mode', () => {
-    beginRun(true);
-  }, 24);
-
-  menuButtons.appendChild(startBtn);
-  menuButtons.appendChild(modeBtn);
-
-  const resumeBtn = makeGlassButton('Resume', () => {
-    resumeRun();
-  }, 24);
-
-  const restartBtn = makeGlassButton('Restart', () => {
-    beginRun(stateRelax);
-  }, 24);
-
-  const menuBtn = makeGlassButton('Main Menu', () => {
-    goMenu();
-  }, 24);
-
-  pauseButtons.appendChild(resumeBtn);
-  pauseButtons.appendChild(restartBtn);
-  pauseButtons.appendChild(menuBtn);
-}
-
-function beginRun(relax = true) {
   started = true;
-  stateRelax = relax;
-
-  startAudio();
-
+  paused = false;
+  playing = true;
   state.score = 0;
-  state.harmony = relax ? 100 : 92;
-  state.shards = 0;
-  state.distance = 0;
+  state.notes = 0;
+  state.signal = 0;
+  state.trackTime = 0;
+  state.beat = 0;
   state.combo = 0;
-  state.zoneIndex = 0;
-  state.zoneTimer = 0;
+  state.moodPulse = 0;
   state.bannerTimer = 0;
-  state.shake = 0;
-  state.driftTime = 0;
+  state.complete = false;
+  state.spawnTimer = 0;
+  state.progressGlow = 0;
+  beatAccumulator = 0;
 
-  ship.x = W * 0.5;
+  ship.x = 0.5;
+  ship.targetX = 0.5;
   ship.vx = 0;
   ship.tilt = 0;
-  ship.glow = 1;
 
-  shards = [];
-  comets = [];
-  ripples = [];
-  dust = [];
-  stars.forEach(s => {
-    s.x = Math.random();
-    s.y = Math.random();
-    s.z = rand(0.2, 1.0);
-  });
+  notes = [];
+  rings = [];
+  streaks = [];
 
-  startScreen.classList.add('hidden');
+  chapterNameEl.textContent = chapter.name;
+  moodValueEl.textContent = chapter.mood;
+
+  menuScreen.classList.add('hidden');
   pauseScreen.classList.add('hidden');
-  touchZone.classList.remove('hidden');
+  completeScreen.classList.add('hidden');
   hud.classList.remove('hidden');
-  running = true;
-  paused = false;
-  document.body.classList.add('running');
+  touchRail.classList.remove('hidden');
+  touchRail.classList.add('active');
 
-  if (window.innerWidth < 820) {
-    touchZone.classList.add('active');
-  }
+  if (!audio) audio = new window.AudioEngine();
+  audio.start(chapter);
+  audio.setConfig({ tempo: chapter.tempo, filter: 1350 + state.chapterIndex * 120 });
+  audio.update(chapter, onBeat);
 
-  spawnField();
+  showBanner(chapter.intro);
 }
 
-function resumeRun() {
-  if (!started) {
-    beginRun(true);
-    return;
+function onBeat(ev) {
+  if (!playing || paused) return;
+  const chapter = currentChapter();
+
+  // Soft, melodic patterns: 1-3 notes per bar, no chaos.
+  const pattern = [
+    0.20, 0.42, 0.65, 0.80,
+    0.18, 0.35, 0.58, 0.76
+  ];
+  if (ev.step % 2 === 0 && Math.random() < 0.72) {
+    spawnNote(pattern[(ev.step + state.chapterIndex) % pattern.length], chapter);
   }
+  if (ev.beatInBar === 0) {
+    rings.push({
+      x: 0.5 + rand(-0.08, 0.08),
+      y: -0.06,
+      r: rand(28, 42),
+      speed: rand(0.018, 0.028),
+      life: 1,
+    });
+  }
+
+  state.beat = ev.beat;
+}
+
+function spawnNote(xNorm, chapter) {
+  const scale = [0, 2, 4, 7, 9, 12];
+  const note = {
+    x: clamp(xNorm + rand(-0.045, 0.045), 0.08, 0.92),
+    y: -0.06,
+    size: rand(9, 13),
+    speed: rand(0.15, 0.22),
+    freq: chapter.root * Math.pow(2, pick(scale) / 12),
+    spin: rand(0, Math.PI * 2),
+    drift: rand(-0.02, 0.02),
+    color: chapter.palette.note,
+  };
+  notes.push(note);
+}
+
+function showBanner(text) {
+  banner.textContent = text;
+  banner.classList.remove('hidden');
+  state.bannerTimer = 2.4;
+}
+
+function resumeGame() {
+  paused = false;
+  playing = true;
   pauseScreen.classList.add('hidden');
-  touchZone.classList.remove('hidden');
-  running = true;
-  paused = false;
-  document.body.classList.add('running');
+  touchRail.classList.remove('hidden');
+  if (audio && currentChapter()) audio.start(currentChapter());
 }
 
-function pauseRun() {
+function pauseGame() {
   if (!started) return;
-  running = false;
+  playing = false;
   paused = true;
   pauseScreen.classList.remove('hidden');
-  touchZone.classList.add('hidden');
-  document.body.classList.remove('running');
+  touchRail.classList.add('hidden');
 }
 
 function goMenu() {
-  running = false;
-  paused = false;
   started = false;
+  paused = false;
+  playing = false;
+  menuScreen.classList.remove('hidden');
   pauseScreen.classList.add('hidden');
-  startScreen.classList.remove('hidden');
-  touchZone.classList.add('hidden');
+  completeScreen.classList.add('hidden');
   hud.classList.add('hidden');
-  finishBanner.classList.add('hidden');
-  document.body.classList.remove('running');
+  touchRail.classList.add('hidden');
+  banner.classList.add('hidden');
+  if (audio) audio.stop();
 }
 
-function spawnField() {
-  if (comets.length < 6) {
-    for (let i = 0; i < 5; i++) spawnComet(true);
-  }
-  if (shards.length < 5) {
-    for (let i = 0; i < 6; i++) spawnShard(true);
-  }
-  if (rings.length < 2) {
-    rings.push(makeRing(rand(0.2, 0.8), rand(0.12, 0.52), rand(50, 120)));
-  }
+function finishChapter() {
+  playing = false;
+  paused = false;
+  state.complete = true;
+  touchRail.classList.add('hidden');
+
+  const chapter = currentChapter();
+  const rank = rankForSignal(state.signal, state.notes);
+
+  completeTitle.textContent = chapter.name;
+  completeText.textContent = state.signal >= 100
+    ? 'The full track is back. That one felt good.'
+    : 'You restored part of the song. You can always replay and fill it more.';
+  finalScoreEl.textContent = Math.floor(state.score);
+  finalNotesEl.textContent = state.notes;
+  finalRankEl.textContent = rank;
+
+  completeScreen.classList.remove('hidden');
+  if (state.signal >= 80) showBanner('Harmony restored.');
 }
 
-function makeRing(x, y, r) {
-  return {
-    x,
-    y,
-    r,
-    angle: rand(0, Math.PI * 2),
-    hue: rand(0.0, 1.0),
-    pulse: rand(0, Math.PI * 2),
-  };
+function rankForSignal(signal, notes) {
+  const score = signal + notes * 2;
+  if (score >= 170) return 'S';
+  if (score >= 140) return 'A';
+  if (score >= 110) return 'B';
+  if (score >= 80) return 'C';
+  return 'D';
 }
 
-function spawnComet(initial = false) {
-  comets.push({
-    x: Math.random(),
-    y: initial ? rand(-0.4, 1.1) : -0.08,
-    size: rand(14, 28),
-    vx: rand(-0.01, 0.01),
-    vy: rand(0.028, 0.07),
-    spin: rand(0, Math.PI * 2),
-    spinSpeed: rand(-1.2, 1.2),
-    core: Math.random() > 0.65,
-  });
-}
+/* =========================
+   Touch steering
+========================= */
+const pointer = {
+  active: false,
+  id: null,
+  x: 0.5,
+};
 
-function spawnShard(initial = false) {
-  const orbit = rand(36, 72);
-  shards.push({
-    x: rand(0.08, 0.92),
-    y: initial ? rand(-0.3, 1.0) : -0.06,
-    r: rand(7, 12),
-    vy: rand(0.03, 0.06),
-    spin: rand(0, Math.PI * 2),
-    orbit,
-    phase: rand(0, Math.PI * 2),
-    collected: false,
-  });
-}
-
-function burst(x, y, count, palette, force = 1) {
-  for (let i = 0; i < count; i++) {
-    const a = rand(0, Math.PI * 2);
-    const s = rand(18, 68) * force;
-    dust.push({
-      x, y,
-      vx: Math.cos(a) * s,
-      vy: Math.sin(a) * s * 0.8,
-      life: rand(0.35, 0.9),
-      r: rand(1, 3.8),
-      color: pick(palette),
-    });
-  }
-}
-
-function addRipple(x, y, accent = 'rgba(255,255,255,0.32)') {
-  ripples.push({
-    x, y,
-    r: 10,
-    alpha: 0.65,
-    accent,
-  });
-}
-
-function updateHud() {
-  scoreValue.textContent = Math.floor(state.score);
-  harmonyValue.textContent = Math.max(0, Math.floor(state.harmony));
-  shardValue.textContent = state.shards;
-  zoneValue.textContent = zones[state.zoneIndex].name;
-}
-
-function maybeSwitchZone() {
-  const nextIndex = Math.floor(state.distance / 1200) % zones.length;
-  if (nextIndex !== state.zoneIndex) {
-    state.zoneIndex = nextIndex;
-    state.bannerTimer = 2.6;
-    finishText.textContent = `${zones[state.zoneIndex].name} — drift mode`;
-  }
-}
-
-function onCollect(x, y) {
-  state.shards += 1;
-  state.score += 35;
-  state.combo += 1;
-  state.harmony = clamp(state.harmony + 6, 0, 100);
-  ship.glow = 1;
-  burst(x, y, 12, ['rgba(183,255,240,0.95)', 'rgba(255,255,255,0.85)', 'rgba(211,193,255,0.9)'], 1);
-  addRipple(x, y, 'rgba(183,255,240,0.26)');
-  if (state.combo % 4 === 0) {
-    state.bannerTimer = 2.4;
-    finishText.textContent = 'Constellation line complete.';
-  }
-}
-
-function onCometHit(x, y) {
-  state.harmony = clamp(state.harmony - 8, 0, 100);
-  state.combo = 0;
-  state.score = Math.max(0, state.score - 12);
-  state.shake = 0.42;
-  ship.glow = 1;
-  burst(x, y, 16, ['rgba(255,199,214,0.95)', 'rgba(255,255,255,0.82)', 'rgba(227,210,255,0.86)'], 1.1);
-  addRipple(x, y, 'rgba(255,224,235,0.22)');
-}
-
-function pointerToWorldX(clientX) {
+function pointerX(clientX) {
   const rect = canvas.getBoundingClientRect();
   return clamp((clientX - rect.left) / rect.width, 0.04, 0.96);
 }
 
-/* =========================
-   Input
-========================= */
-function startPointer(e) {
-  if (!running && !started) return;
+function onPointerDown(e) {
+  if (!playing) return;
   if (e.target.closest && e.target.closest('button')) return;
-  input.active = true;
-  input.pointerId = e.pointerId;
-  input.rawX = pointerToWorldX(e.clientX);
-  input.targetX = input.rawX;
-  touchZone.classList.add('active');
-  thumb.style.left = `${input.rawX * 100}%`;
+  pointer.active = true;
+  pointer.id = e.pointerId;
+  pointer.x = pointerX(e.clientX);
+  ship.targetX = pointer.x;
+  thumb.style.left = `${pointer.x * 100}%`;
   thumb.style.transform = 'translateX(-50%) scale(1.05)';
+  touchRail.classList.add('active');
   canvas.setPointerCapture?.(e.pointerId);
 }
 
-function movePointer(e) {
-  if (!input.active || input.pointerId !== e.pointerId) return;
-  input.rawX = pointerToWorldX(e.clientX);
-  input.targetX = input.rawX;
-  thumb.style.left = `${input.rawX * 100}%`;
+function onPointerMove(e) {
+  if (!pointer.active || pointer.id !== e.pointerId) return;
+  pointer.x = pointerX(e.clientX);
+  ship.targetX = pointer.x;
+  thumb.style.left = `${pointer.x * 100}%`;
 }
 
-function endPointer(e) {
-  if (input.pointerId !== null && e.pointerId !== input.pointerId) return;
-  input.active = false;
-  input.pointerId = null;
+function onPointerUp(e) {
+  if (pointer.id !== null && e.pointerId !== pointer.id) return;
+  pointer.active = false;
+  pointer.id = null;
   thumb.style.transform = 'translateX(-50%) scale(1)';
-  if (running) {
-    touchZone.classList.add('active');
-  }
 }
 
-canvas.addEventListener('pointerdown', startPointer);
-window.addEventListener('pointermove', movePointer);
-window.addEventListener('pointerup', endPointer);
-window.addEventListener('pointercancel', endPointer);
-
-touchZone.addEventListener('pointerdown', (e) => {
-  if (!running) return;
-  startPointer(e);
-}, { passive: false });
-
-touchZone.addEventListener('pointermove', movePointer, { passive: false });
-touchZone.addEventListener('pointerup', endPointer, { passive: false });
-touchZone.addEventListener('pointercancel', endPointer, { passive: false });
+canvas.addEventListener('pointerdown', onPointerDown);
+window.addEventListener('pointermove', onPointerMove);
+window.addEventListener('pointerup', onPointerUp);
+window.addEventListener('pointercancel', onPointerUp);
 
 window.addEventListener('keydown', (e) => {
   if (e.code === 'Space') {
     e.preventDefault();
-    if (!started) beginRun(true);
-    else if (running) pauseRun();
-    else resumeRun();
+    if (!started) startChapter(0);
+    else if (playing) pauseGame();
+    else if (paused) resumeGame();
   }
   if (e.code === 'Escape') {
-    if (started && running) pauseRun();
+    if (playing) pauseGame();
     else if (paused) goMenu();
   }
-  if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
-    input.targetX = clamp(input.targetX - 0.06, 0.04, 0.96);
-  }
-  if (e.code === 'ArrowRight' || e.code === 'KeyD') {
-    input.targetX = clamp(input.targetX + 0.06, 0.04, 0.96);
-  }
+  if (e.code === 'ArrowLeft' || e.code === 'KeyA') ship.targetX = clamp(ship.targetX - 0.07, 0.04, 0.96);
+  if (e.code === 'ArrowRight' || e.code === 'KeyD') ship.targetX = clamp(ship.targetX + 0.07, 0.04, 0.96);
 });
 
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden && started && running) {
-    pauseRun();
-  }
+  if (document.hidden && playing) pauseGame();
 });
 
 /* =========================
-   Render helpers
+   World generation
+========================= */
+function spawnBackgroundNote() {
+  const chapter = currentChapter();
+  notes.push({
+    x: rand(0.10, 0.90),
+    y: -0.06,
+    size: rand(8, 12),
+    speed: rand(0.16, 0.24),
+    freq: chapter.root * Math.pow(2, pick([0, 2, 4, 7, 9, 12]) / 12),
+    spin: rand(0, Math.PI * 2),
+    drift: rand(-0.015, 0.015),
+    color: chapter.palette.note,
+  });
+}
+
+function spawnStreak(x, y, color) {
+  for (let i = 0; i < 8; i++) {
+    streaks.push({
+      x, y,
+      vx: rand(-36, 36),
+      vy: rand(16, 72),
+      life: rand(0.25, 0.7),
+      r: rand(1, 3),
+      color,
+    });
+  }
+}
+
+function collectNote(note, index) {
+  notes.splice(index, 1);
+  state.notes += 1;
+  state.combo += 1;
+  state.score += 20 + state.combo * 2;
+  state.signal = Math.min(100, (state.notes / currentChapter().noteGoal) * 100);
+  state.progressGlow = 1;
+  ship.vx = 0.12;
+  if (audio && audio.note) audio.note(note.freq, 'triangle', 0.09, 0.22, rand(-0.2, 0.2));
+  spawnStreak(note.x * W, note.y * H, currentChapter().palette.accent);
+  showBanner(state.combo >= 8 ? 'The melody is blooming.' : 'Nice catch.');
+  if (state.signal >= 100) {
+    finishChapter();
+  }
+}
+
+function hitMiss(note, index) {
+  // No game over. Just soften the combo and let the player continue.
+  notes.splice(index, 1);
+  state.combo = Math.max(0, state.combo - 2);
+}
+
+/* =========================
+   Drawing
 ========================= */
 function drawBackground(dt) {
-  const zone = zones[state.zoneIndex];
-  const g = ctx.createLinearGradient(0, 0, 0, H);
-  g.addColorStop(0, zone.sky0);
-  g.addColorStop(1, zone.sky1);
-  ctx.fillStyle = g;
+  const c = currentChapter();
+  const sky = ctx.createLinearGradient(0, 0, 0, H);
+  sky.addColorStop(0, c.palette.sky0);
+  sky.addColorStop(1, c.palette.sky1);
+  ctx.fillStyle = sky;
   ctx.fillRect(0, 0, W, H);
 
-  // Nebula glows
-  const nebulae = [
-    { x: W * 0.20, y: H * 0.18, r: Math.min(W, H) * 0.46, c: zone.nebula },
-    { x: W * 0.80, y: H * 0.26, r: Math.min(W, H) * 0.34, c: 'rgba(255,255,255,0.05)' },
-    { x: W * 0.56, y: H * 0.04, r: Math.min(W, H) * 0.28, c: 'rgba(255,160,220,0.04)' },
-  ];
+  // Sun
+  const sx = W * sun.x;
+  const sy = H * sun.y;
+  const sunGlow = ctx.createRadialGradient(sx, sy, 2, sx, sy, sun.r * 1.25);
+  sunGlow.addColorStop(0, c.palette.sun);
+  sunGlow.addColorStop(0.55, c.palette.sun.replace('0.92', '0.22').replace('0.82', '0.22').replace('0.78', '0.22').replace('0.60', '0.16'));
+  sunGlow.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = sunGlow;
+  ctx.beginPath();
+  ctx.arc(sx, sy, sun.r * 1.25, 0, Math.PI * 2);
+  ctx.fill();
 
-  for (const n of nebulae) {
-    const rg = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.r);
-    rg.addColorStop(0, n.c);
-    rg.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = rg;
-    ctx.beginPath();
-    ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
-    ctx.fill();
-  }
+  const sunCore = ctx.createRadialGradient(sx - sun.r*0.15, sy - sun.r*0.15, 0, sx, sy, sun.r);
+  sunCore.addColorStop(0, '#fff6ef');
+  sunCore.addColorStop(1, c.palette.sun);
+  ctx.fillStyle = sunCore;
+  ctx.beginPath();
+  ctx.arc(sx, sy, sun.r, 0, Math.PI * 2);
+  ctx.fill();
 
-  // slow star drift
+  // Stars
   for (const s of stars) {
     const x = s.x * W;
-    const y = (s.y * H + state.driftTime * (22 + s.z * 36)) % (H + 8) - 4;
-    const alpha = 0.2 + s.z * 0.7;
-    ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+    const y = (s.y * H + state.trackTime * (15 + s.z * 30)) % (H + 8) - 4;
+    const a = 0.25 + s.z * 0.75;
+    ctx.globalAlpha = a;
+    ctx.fillStyle = 'rgba(255,255,255,1)';
     ctx.beginPath();
-    ctx.arc(x, y, 0.8 + s.z * 1.8, 0, Math.PI * 2);
+    ctx.arc(x, y, 0.8 + s.z * 1.6, 0, Math.PI * 2);
     ctx.fill();
+  }
+  ctx.globalAlpha = 1;
 
-    // tiny sparkle
-    if ((s.tw + state.driftTime * 1.1) % 6.2 < 0.03) {
-      ctx.globalAlpha = 0.25;
-      ctx.fillRect(x - 2, y, 4, 1);
-      ctx.globalAlpha = 1;
+  // Gentle nebula swaths
+  const swath = ctx.createRadialGradient(W*0.28, H*0.25, 0, W*0.28, H*0.25, Math.min(W, H)*0.4);
+  swath.addColorStop(0, 'rgba(255,110,215,0.08)');
+  swath.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = swath;
+  ctx.beginPath();
+  ctx.arc(W*0.28, H*0.25, Math.min(W,H)*0.4, 0, Math.PI*2);
+  ctx.fill();
+
+  const swath2 = ctx.createRadialGradient(W*0.72, H*0.18, 0, W*0.72, H*0.18, Math.min(W, H)*0.32);
+  swath2.addColorStop(0, 'rgba(85,233,255,0.06)');
+  swath2.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = swath2;
+  ctx.beginPath();
+  ctx.arc(W*0.72, H*0.18, Math.min(W,H)*0.32, 0, Math.PI*2);
+  ctx.fill();
+}
+
+function drawGrid() {
+  const c = currentChapter();
+  const horizon = H * 0.72;
+  const perspective = 0.0019;
+  const lines = 16;
+  const columns = 12;
+
+  // Horizon glow
+  const g = ctx.createLinearGradient(0, horizon - 40, 0, H);
+  g.addColorStop(0, 'rgba(255,255,255,0)');
+  g.addColorStop(1, 'rgba(255,255,255,0.04)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, horizon - 40, W, H - horizon + 40);
+
+  // Grid lines
+  ctx.strokeStyle = c.palette.grid;
+  ctx.lineWidth = 1.5;
+
+  for (let i = 0; i < lines; i++) {
+    const p = i / (lines - 1);
+    const y = horizon + Math.pow(p, 1.65) * (H - horizon);
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(W, y);
+    ctx.stroke();
+  }
+
+  for (let i = -columns; i <= columns; i++) {
+    const x = W * 0.5 + i * (W / 12);
+    const top = horizon;
+    const bottom = H;
+    const bend = (x - W * 0.5) * perspective * (H - horizon);
+    ctx.beginPath();
+    ctx.moveTo(x, top);
+    ctx.lineTo(W * 0.5 + (x - W * 0.5) * 1.9, bottom);
+    ctx.stroke();
+  }
+
+  // Horizon line
+  ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+  ctx.beginPath();
+  ctx.moveTo(0, horizon);
+  ctx.lineTo(W, horizon);
+  ctx.stroke();
+}
+
+function drawMountains() {
+  const horizon = H * 0.72;
+  ctx.fillStyle = 'rgba(4,6,14,0.82)';
+  ctx.beginPath();
+  ctx.moveTo(0, horizon);
+
+  for (const m of mountains) {
+    const x = m.x * W;
+    const peak = horizon - H * m.h;
+    const left = x - W * m.w * 0.5;
+    const right = x + W * m.w * 0.5;
+    ctx.lineTo(left, horizon);
+    ctx.lineTo(x, peak);
+    ctx.lineTo(right, horizon);
+  }
+
+  ctx.lineTo(W, horizon);
+  ctx.lineTo(W, H);
+  ctx.lineTo(0, H);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawNotes() {
+  const c = currentChapter();
+  for (let i = notes.length - 1; i >= 0; i--) {
+    const n = notes[i];
+    const x = n.x * W;
+    const y = n.y * H;
+    const d = Math.abs(x - ship.x) + Math.abs(y - ship.y);
+
+    n.y += n.speed * 0.014;
+    n.x += n.drift * 0.01;
+    n.spin += 0.03;
+
+    if (n.y > 1.08) {
+      if (d > 40) hitMiss(n, i);
+      else notes.splice(i, 1);
+      continue;
     }
-  }
 
-  // planets
-  for (const p of planets) {
-    const x = p.x * W + Math.sin(state.driftTime * p.speed * 24) * 12;
-    const y = p.y * H + Math.cos(state.driftTime * p.speed * 20) * 10;
-    const r = p.r * (Math.min(W, H) / 980);
-    const grad = ctx.createRadialGradient(x - r * 0.22, y - r * 0.22, r * 0.12, x, y, r);
-    grad.addColorStop(0, p.color);
-    grad.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = grad;
+    const glow = ctx.createRadialGradient(x, y, 0, x, y, n.size * 4.2);
+    glow.addColorStop(0, 'rgba(255,255,255,0.9)');
+    glow.addColorStop(0.45, 'rgba(185,245,255,0.42)');
+    glow.addColorStop(1, 'rgba(185,245,255,0)');
+    ctx.fillStyle = glow;
     ctx.beginPath();
-    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.arc(x, y, n.size * 4.2, 0, Math.PI * 2);
     ctx.fill();
-  }
 
-  // subtle horizon haze
-  const haze = ctx.createLinearGradient(0, H * 0.6, 0, H);
-  haze.addColorStop(0, 'rgba(255,255,255,0)');
-  haze.addColorStop(1, 'rgba(255,255,255,0.03)');
-  ctx.fillStyle = haze;
-  ctx.fillRect(0, H * 0.62, W, H * 0.38);
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(n.spin);
+    ctx.fillStyle = c.palette.note;
+    roundDiamond(-n.size, -n.size, n.size * 2, n.size * 2);
+    ctx.fill();
+    ctx.restore();
+  }
 }
 
 function drawRings() {
-  for (const r of rings) {
+  const c = currentChapter();
+  for (let i = rings.length - 1; i >= 0; i--) {
+    const r = rings[i];
+    r.y += r.speed;
+    r.life -= 0.008;
+
+    if (r.life <= 0 || r.y > 1.05) {
+      rings.splice(i, 1);
+      continue;
+    }
+
     const x = r.x * W;
     const y = r.y * H;
-    const pulse = 0.88 + Math.sin(state.driftTime * 1.6 + r.pulse) * 0.06;
-    ctx.save();
-    ctx.globalAlpha = 0.18;
-    ctx.strokeStyle = zones[state.zoneIndex].accent;
+    ctx.strokeStyle = 'rgba(255,255,255,0.16)';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.arc(x, y, r.r * pulse, 0, Math.PI * 2);
+    ctx.arc(x, y, r.r, 0, Math.PI * 2);
     ctx.stroke();
-
-    ctx.globalAlpha = 0.08;
-    ctx.beginPath();
-    ctx.arc(x, y, r.r * 1.4 * pulse, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.restore();
   }
 }
 
-function drawShards() {
-  for (const s of shards) {
-    if (s.collected) continue;
-    const x = s.x * W + Math.sin(state.driftTime * 2 + s.phase) * 8;
-    const y = s.y * H;
-    const pulse = 0.78 + Math.sin(state.driftTime * 4 + s.phase) * 0.12;
+function drawStreaks() {
+  for (let i = streaks.length - 1; i >= 0; i--) {
+    const s = streaks[i];
+    s.life -= 0.016;
+    if (s.life <= 0) {
+      streaks.splice(i, 1);
+      continue;
+    }
+    s.x += s.vx * 0.016;
+    s.y += s.vy * 0.016;
 
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(s.spin + state.driftTime * 1.5);
-
-    const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, s.r * 3.4);
-    glow.addColorStop(0, 'rgba(183,255,240,0.95)');
-    glow.addColorStop(1, 'rgba(183,255,240,0)');
-    ctx.fillStyle = glow;
+    ctx.globalAlpha = clamp(s.life, 0, 1);
+    ctx.fillStyle = s.color;
     ctx.beginPath();
-    ctx.arc(0, 0, s.r * 3.4, 0, Math.PI * 2);
+    ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
     ctx.fill();
-
-    ctx.fillStyle = 'rgba(245,255,252,0.96)';
-    ctx.beginPath();
-    ctx.moveTo(0, -s.r * 1.5);
-    ctx.lineTo(s.r * 1.1, 0);
-    ctx.lineTo(0, s.r * 1.5);
-    ctx.lineTo(-s.r * 1.1, 0);
-    ctx.closePath();
-    ctx.fill();
-
-    ctx.globalAlpha = 0.42;
-    ctx.scale(0.58, 0.58);
-    ctx.beginPath();
-    ctx.moveTo(0, -s.r * 1.6);
-    ctx.lineTo(s.r * 1.2, 0);
-    ctx.lineTo(0, s.r * 1.6);
-    ctx.lineTo(-s.r * 1.2, 0);
-    ctx.closePath();
-    ctx.fill();
-    ctx.restore();
   }
-}
-
-function drawComets() {
-  for (const c of comets) {
-    const x = c.x * W;
-    const y = c.y * H;
-    const size = c.size * (Math.min(W, H) / 980);
-
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(c.spin + Math.sin(state.driftTime * 2) * 0.12);
-
-    const trail = ctx.createLinearGradient(-size * 5, 0, size * 2, 0);
-    trail.addColorStop(0, 'rgba(255,255,255,0)');
-    trail.addColorStop(1, c.core ? 'rgba(255,193,209,0.32)' : 'rgba(160,190,255,0.22)');
-    ctx.fillStyle = trail;
-    ctx.beginPath();
-    ctx.ellipse(-size * 2.0, 0, size * 2.4, size * 0.7, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    const core = ctx.createRadialGradient(0, 0, 0, 0, 0, size * 1.4);
-    core.addColorStop(0, c.core ? 'rgba(255,255,255,0.98)' : 'rgba(230,246,255,0.96)');
-    core.addColorStop(1, 'rgba(255,255,255,0)');
-    ctx.fillStyle = core;
-    ctx.beginPath();
-    ctx.arc(0, 0, size, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.restore();
-  }
+  ctx.globalAlpha = 1;
 }
 
 function drawShip() {
+  const c = currentChapter();
   const x = ship.x;
   const y = ship.y;
-  const z = zones[state.zoneIndex];
-  const bob = Math.sin(state.driftTime * 2.5) * 2.5;
-
+  const bob = Math.sin(state.trackTime * 2.4) * 3.2;
   ctx.save();
   ctx.translate(x, y + bob);
   ctx.rotate(ship.tilt);
 
-  const glow = ctx.createRadialGradient(0, 0, 4, 0, 0, 58);
-  glow.addColorStop(0, 'rgba(183,255,240,0.34)');
-  glow.addColorStop(1, 'rgba(183,255,240,0)');
+  const glow = ctx.createRadialGradient(0, 0, 2, 0, 0, 60);
+  glow.addColorStop(0, 'rgba(255,255,255,0.28)');
+  glow.addColorStop(0.45, 'rgba(170,247,255,0.24)');
+  glow.addColorStop(1, 'rgba(170,247,255,0)');
   ctx.fillStyle = glow;
   ctx.beginPath();
-  ctx.arc(0, 0, 58, 0, Math.PI * 2);
+  ctx.arc(0, 0, 60, 0, Math.PI * 2);
   ctx.fill();
 
-  // main hull
-  const hull = ctx.createLinearGradient(0, -28, 0, 28);
-  hull.addColorStop(0, 'rgba(255,255,255,0.95)');
-  hull.addColorStop(1, 'rgba(190,198,214,0.86)');
-  ctx.fillStyle = hull;
-  roundRect(ctx, -22, -28, 44, 56, 18);
+  // ship body
+  const body = ctx.createLinearGradient(0, -24, 0, 24);
+  body.addColorStop(0, 'rgba(250,250,255,0.97)');
+  body.addColorStop(1, 'rgba(186,192,209,0.90)');
+  ctx.fillStyle = body;
+  roundRoundedRect(ctx, -18, -24, 36, 48, 14);
   ctx.fill();
 
-  // canopy
-  const canopy = ctx.createLinearGradient(0, -12, 0, 12);
-  canopy.addColorStop(0, 'rgba(17,24,40,0.90)');
-  canopy.addColorStop(1, 'rgba(6,9,17,0.92)');
-  ctx.fillStyle = canopy;
-  roundRect(ctx, -10, -12, 20, 24, 10);
+  // cockpit
+  const cockpit = ctx.createLinearGradient(0, -10, 0, 10);
+  cockpit.addColorStop(0, 'rgba(18,21,38,0.98)');
+  cockpit.addColorStop(1, 'rgba(10,12,21,0.98)');
+  ctx.fillStyle = cockpit;
+  roundRoundedRect(ctx, -8, -11, 16, 22, 9);
   ctx.fill();
 
-  // side thrusters
-  ctx.fillStyle = 'rgba(183,255,240,0.88)';
-  roundRect(ctx, -28, -8, 6, 16, 3);
+  // neon wings
+  ctx.fillStyle = 'rgba(175,247,255,0.9)';
+  roundRoundedRect(ctx, -24, -7, 7, 14, 4);
   ctx.fill();
 
-  ctx.fillStyle = 'rgba(255,220,234,0.82)';
-  roundRect(ctx, 22, -8, 6, 16, 3);
+  ctx.fillStyle = 'rgba(255,189,224,0.86)';
+  roundRoundedRect(ctx, 17, -7, 7, 14, 4);
   ctx.fill();
 
-  // engine flare
-  ctx.globalAlpha = 0.9;
-  const flame = ctx.createLinearGradient(0, 28, 0, 60);
-  flame.addColorStop(0, 'rgba(183,255,240,0.95)');
-  flame.addColorStop(0.5, 'rgba(210,208,255,0.65)');
-  flame.addColorStop(1, 'rgba(255,255,255,0)');
-  ctx.fillStyle = flame;
+  // engine beam
+  const beam = ctx.createLinearGradient(0, 26, 0, 62);
+  beam.addColorStop(0, 'rgba(255,255,255,0.9)');
+  beam.addColorStop(0.38, 'rgba(170,247,255,0.78)');
+  beam.addColorStop(1, 'rgba(170,247,255,0)');
+  ctx.fillStyle = beam;
   ctx.beginPath();
-  ctx.moveTo(-8, 28);
-  ctx.lineTo(0, 54 + Math.sin(state.driftTime * 12) * 2);
-  ctx.lineTo(8, 28);
+  ctx.moveTo(-8, 26);
+  ctx.lineTo(0, 58 + Math.sin(state.trackTime * 12) * 2);
+  ctx.lineTo(8, 26);
   ctx.closePath();
   ctx.fill();
 
   ctx.restore();
 }
 
-function drawDust() {
-  for (let i = dust.length - 1; i >= 0; i--) {
-    const p = dust[i];
-    p.life -= 0.016;
-    p.x += p.vx * 0.016 / W;
-    p.y += p.vy * 0.016 / H;
-    p.vx *= 0.986;
-    p.vy *= 0.986;
-    if (p.life <= 0) {
-      dust.splice(i, 1);
-      continue;
-    }
+function drawOverlayVignette() {
+  const g = ctx.createRadialGradient(W*0.5, H*0.42, 0, W*0.5, H*0.42, Math.max(W, H) * 0.75);
+  g.addColorStop(0, 'rgba(0,0,0,0)');
+  g.addColorStop(1, 'rgba(0,0,0,0.16)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
 
-    const alpha = clamp(p.life, 0, 1);
-    ctx.globalAlpha = alpha;
-    ctx.fillStyle = p.color;
-    ctx.beginPath();
-    ctx.arc(p.x * W, p.y * H, p.r, 0, Math.PI * 2);
-    ctx.fill();
-  }
+  // subtle scanlines
+  ctx.globalAlpha = 0.05;
+  ctx.fillStyle = '#ffffff';
+  for (let y = 0; y < H; y += 4) ctx.fillRect(0, y, W, 1);
   ctx.globalAlpha = 1;
 }
 
-function drawRipples() {
-  for (let i = ripples.length - 1; i >= 0; i--) {
-    const r = ripples[i];
-    r.r += 170 * 0.016;
-    r.alpha -= 0.018;
-    if (r.alpha <= 0) {
-      ripples.splice(i, 1);
-      continue;
-    }
-    ctx.globalAlpha = r.alpha;
-    ctx.strokeStyle = r.accent;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(r.x * W, r.y * H, r.r, 0, Math.PI * 2);
-    ctx.stroke();
-  }
-  ctx.globalAlpha = 1;
+function roundDiamond(x, y, w, h) {
+  ctx.beginPath();
+  ctx.moveTo(x + w * 0.5, y);
+  ctx.lineTo(x + w, y + h * 0.5);
+  ctx.lineTo(x + w * 0.5, y + h);
+  ctx.lineTo(x, y + h * 0.5);
+  ctx.closePath();
 }
 
-function roundRect(c, x, y, w, h, r) {
+function roundRoundedRect(c, x, y, w, h, r) {
   const rr = Math.min(r, w / 2, h / 2);
   c.beginPath();
   c.moveTo(x + rr, y);
@@ -811,159 +837,105 @@ function roundRect(c, x, y, w, h, r) {
   c.closePath();
 }
 
-function drawControls() {
-  if (!running) return;
-  const x = input.targetX * W;
-  thumb.style.left = `${input.targetX * 100}%`;
-}
-
 /* =========================
-   Update
+   Update loop
 ========================= */
-let stateRelax = true;
-
 function update(dt) {
-  if (!running) return;
+  const chapter = currentChapter();
+  if (!playing) return;
 
-  state.driftTime += dt;
-  state.zoneTimer += dt;
-  state.distance += dt * 22;
-  state.score += dt * (12 + state.combo * 0.5);
-  state.harmony = clamp(state.harmony + dt * (stateRelax ? 0.65 : 0.18), 0, 100);
-  ship.glow = Math.max(0, ship.glow - dt * 1.8);
+  state.trackTime += dt;
+  state.spawnTimer -= dt;
   state.bannerTimer = Math.max(0, state.bannerTimer - dt);
+  state.progressGlow = Math.max(0, state.progressGlow - dt * 1.8);
 
-  if (state.shake > 0) state.shake = Math.max(0, state.shake - dt);
+  // music engine scheduling
+  if (audio) audio.update(chapter, onBeat);
 
-  maybeSwitchZone();
-  setAudioMood();
-
-  // ship movement
-  const target = input.active ? input.targetX : input.targetX;
-  ship.x = lerp(ship.x, target * W, 1 - Math.pow(0.0008, dt));
-  ship.vx = (target * W - ship.x);
-
-  ship.tilt = clamp(ship.vx / 300, -0.26, 0.26);
-
-  // Keep ship comfortably within the view
+  // smooth steering
+  ship.x = lerp(ship.x, ship.targetX * W, 1 - Math.pow(0.001, dt));
   ship.x = clamp(ship.x, 40, W - 40);
-  ship.y = H * 0.77;
+  ship.tilt = clamp((ship.targetX * W - ship.x) / 260, -0.28, 0.28);
+  ship.bob += dt * 5;
 
-  // spawn rules
-  if (Math.random() < 0.03) spawnComet();
-  if (Math.random() < 0.025) spawnShard();
-  if (Math.random() < 0.008) rings.push(makeRing(rand(0.15, 0.85), rand(0.10, 0.56), rand(34, 108)));
+  // gentle automatic note spawning
+  if (state.spawnTimer <= 0) {
+    spawnBackgroundNote();
+    state.spawnTimer = rand(0.32, 0.56);
+  }
 
-  // cull / move comets
-  for (let i = comets.length - 1; i >= 0; i--) {
-    const c = comets[i];
-    c.y += c.vy * dt * 16;
-    c.x += c.vx * dt * 8;
-    c.spin += c.spinSpeed * dt;
-    if (c.y > 1.2 || c.x < -0.2 || c.x > 1.2) {
-      comets.splice(i, 1);
-      spawnComet();
+  // move notes and handle pickup
+  for (let i = notes.length - 1; i >= 0; i--) {
+    const n = notes[i];
+    n.y += n.speed * dt;
+    n.x += n.drift * dt * 0.6;
+    n.spin += dt * 2.2;
+
+    const wx = n.x * W;
+    const wy = n.y * H;
+    const dist = Math.hypot(wx - ship.x, wy - ship.y);
+
+    if (wy > H + 60) {
+      notes.splice(i, 1);
       continue;
     }
 
-    const wx = c.x * W;
-    const wy = c.y * H;
-    const size = c.size;
-
-    // soft collision, not game over
-    if (Math.abs(wx - ship.x) < size + 24 && Math.abs(wy - ship.y) < size + 18) {
-      onCometHit(wx, wy);
-      comets.splice(i, 1);
-      spawnComet();
+    if (dist < 28) {
+      collectNote(n, i);
       continue;
     }
   }
 
-  // shards
-  for (let i = shards.length - 1; i >= 0; i--) {
-    const s = shards[i];
-    s.y += s.vy * dt * 1.2;
-    s.spin += dt * 2.1;
-
-    if (s.y > 1.18) {
-      shards.splice(i, 1);
-      spawnShard();
-      continue;
-    }
-
-    const wx = s.x * W + Math.sin(state.driftTime * 2 + s.phase) * 8;
-    const wy = s.y * H;
-    const d = Math.hypot(wx - ship.x, wy - ship.y);
-    if (d < 28) {
-      onCollect(wx, wy);
-      shards.splice(i, 1);
-      spawnShard();
-    }
-  }
-
+  // rings, but kept minimal
   for (let i = rings.length - 1; i >= 0; i--) {
-    const r = rings[i];
-    r.angle += dt * 0.35;
-    r.pulse += dt;
-    if (Math.random() < 0.008) {
-      // slow fade by recycling
-      r.r += Math.sin(state.driftTime + i) * 0.02;
-    }
-    if (r.r > 200) {
-      rings.splice(i, 1);
-    }
+    if (rings[i].y > 1.06) rings.splice(i, 1);
   }
 
-  // auto-shuffle world
-  if (comets.length < 7) spawnComet();
-  if (shards.length < 8) spawnShard();
-  if (rings.length < 3 && Math.random() < 0.02) rings.push(makeRing(rand(0.1, 0.9), rand(0.12, 0.56), rand(38, 124)));
+  // combo gently decays over time
+  if (Math.random() < 0.01) state.combo = Math.max(0, state.combo - 1);
 
-  // ambient combo gently decays if idle
-  if (!input.active && state.combo > 0 && Math.random() < 0.01) state.combo = Math.max(0, state.combo - 1);
+  state.signal = clamp((state.notes / chapter.noteGoal) * 100, 0, 100);
 
-  updateHud();
+  if (state.signal >= 100 && !state.complete) {
+    finishChapter();
+  }
+
+  // HUD
+  scoreValueEl.textContent = Math.floor(state.score);
+  signalValueEl.textContent = `${Math.floor(state.signal)}%`;
+  moodValueEl.textContent = chapter.mood;
 
   if (state.bannerTimer > 0) {
-    finishBanner.classList.remove('hidden');
+    banner.classList.remove('hidden');
   } else {
-    finishBanner.classList.add('hidden');
+    banner.classList.add('hidden');
+  }
+
+  // audio mood changes with signal
+  if (audio && audio.master) {
+    const layer = 0.015 + (state.signal / 100) * 0.01;
+    audio.master.gain.setTargetAtTime(layer, audio.ctx.currentTime, 0.04);
+    audio.filter.frequency.setTargetAtTime(1300 + state.signal * 8, audio.ctx.currentTime, 0.06);
   }
 }
 
 /* =========================
-   Draw
+   Draw loop
 ========================= */
 function draw(dt) {
-  const zone = zones[state.zoneIndex];
-  const shakeX = state.shake > 0 ? rand(-6, 6) * state.shake : 0;
-  const shakeY = state.shake > 0 ? rand(-6, 6) * state.shake : 0;
-
-  ctx.save();
-  ctx.translate(shakeX, shakeY);
-
+  if (state.chapterIndex < 0) return;
   drawBackground(dt);
+  drawMountains();
+  drawGrid();
   drawRings();
-  drawShards();
-  drawComets();
-  drawRipples();
-  drawDust();
+  drawNotes();
+  drawStreaks();
   drawShip();
+  drawOverlayVignette();
 
-  // Bottom veil to keep it cozy
-  const veil = ctx.createLinearGradient(0, H * 0.62, 0, H);
-  veil.addColorStop(0, 'rgba(0,0,0,0)');
-  veil.addColorStop(1, 'rgba(0,0,0,0.12)');
-  ctx.fillStyle = veil;
-  ctx.fillRect(0, H * 0.62, W, H * 0.38);
-
-  ctx.restore();
-
-  // pulse the thumb slightly to feel alive
-  if (running) {
+  if (playing) {
     const drift = Math.sin(performance.now() * 0.004) * 2;
     thumb.style.transform = `translateX(-50%) translateY(${drift}px)`;
-    touchZone.classList.add('active');
   }
 }
 
@@ -972,51 +944,14 @@ function loop(ts) {
   const dt = Math.min((ts - last) / 1000, 0.034);
   last = ts;
 
-  if (running) update(dt);
+  if (playing) update(dt);
   draw(dt);
 
   requestAnimationFrame(loop);
 }
 
-/* =========================
-   Buttons and screens
-========================= */
-document.addEventListener('DOMContentLoaded', () => {
-  buildButtons();
-
-  resize();
-
-  // Keep the menu visible until the player starts.
-  hud.classList.add('hidden');
-  touchZone.classList.add('hidden');
-  pauseScreen.classList.add('hidden');
-  finishBanner.classList.add('hidden');
-
-  requestAnimationFrame(loop);
-});
-
-window.addEventListener('keydown', (e) => {
-  if (e.code === 'KeyP' && started) {
-    if (running) pauseRun();
-    else resumeRun();
-  }
-});
-
-/* =========================
-   High-level touch button
-========================= */
-const quickStart = () => beginRun(true);
-
-/* Tap the card to start on mobile */
-startScreen.addEventListener('pointerdown', (e) => {
-  const target = e.target;
-  if (target && target.closest && target.closest('button')) return;
-  if (target && target.closest && target.closest('.glass-card')) {
-    // light tap on the card to start relax mode
-    if (!started) quickStart();
-  }
-});
-
 window.addEventListener('blur', () => {
-  if (started && running) pauseRun();
+  if (playing) pauseGame();
 });
+
+document.addEventListener('DOMContentLoaded', boot);

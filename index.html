@@ -3,100 +3,115 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="theme-color" content="#050814" />
-  <title>Space Drift</title>
+  <meta name="theme-color" content="#0a1020" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Synthwave Signal</title>
 
-  <!-- Liquid Glass JS (documented setup from the repo) -->
-  <link rel="stylesheet" href="https://raw.githubusercontent.com/dashersw/liquid-glass-js/main/styles.css">
-  <link rel="stylesheet" href="https://raw.githubusercontent.com/dashersw/liquid-glass-js/main/glass.css">
+  <!-- Liquid Glass JS (optional; fallback styles are built in) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/dashersw/liquid-glass-js@main/styles.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/dashersw/liquid-glass-js@main/glass.css">
 
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
   <div id="app">
-    <canvas id="space"></canvas>
+    <canvas id="game"></canvas>
 
-    <div id="hud" class="hud hidden">
+    <header id="hud" class="hud hidden">
       <div class="hud-left">
-        <div class="hud-pill">
-          <span class="label">Score</span>
-          <span id="scoreValue" class="value">0</span>
+        <div class="glass-chip">
+          <span class="kicker">Track</span>
+          <span id="chapterName" class="chip-value">Neon Highway</span>
         </div>
-        <div class="hud-pill">
-          <span class="label">Harmony</span>
-          <span id="harmonyValue" class="value">100</span>
+        <div class="glass-chip">
+          <span class="kicker">Score</span>
+          <span id="scoreValue" class="chip-value">0</span>
         </div>
       </div>
 
       <div class="hud-right">
-        <div class="hud-pill">
-          <span class="label">Zone</span>
-          <span id="zoneValue" class="value">Dawn Drift</span>
+        <div class="glass-chip">
+          <span class="kicker">Signal</span>
+          <span id="signalValue" class="chip-value">0%</span>
         </div>
-        <div class="hud-pill small">
-          <span class="label">Shards</span>
-          <span id="shardValue" class="value">0</span>
+        <div class="glass-chip">
+          <span class="kicker">Mood</span>
+          <span id="moodValue" class="chip-value">Warm</span>
         </div>
       </div>
-    </div>
+    </header>
 
-    <div id="touchZone" class="touch-zone hidden" aria-label="Steering area">
-      <div class="touch-hint">
-        <div class="touch-hint-title">Glide Control</div>
-        <div class="touch-hint-subtitle">Drag anywhere in the lower part of the screen.</div>
+    <div id="touchRail" class="touch-rail hidden" aria-label="Steering area">
+      <div class="touch-label">
+        <div class="touch-title">Slide to steer</div>
+        <div class="touch-subtitle">Hold the bottom of the screen and drift left or right.</div>
       </div>
       <div id="thumb" class="thumb"></div>
     </div>
 
-    <div id="startScreen" class="screen">
-      <div class="glass-card glass-card-large">
-        <div class="title-wrap">
-          <p class="eyebrow">Calm Space Runner</p>
-          <h1>Space Drift</h1>
-          <p class="lede">
-            A chill little cruise through deep space. No stress, no hard fail state.
-            Just soft movement, glowing shards, and a sky full of quiet motion.
-          </p>
-        </div>
+    <div id="menuScreen" class="screen">
+      <section class="glass-panel hero-panel">
+        <p class="eyebrow">Restore the radio</p>
+        <h1>Synthwave Signal</h1>
+        <p class="lede">
+          Drift through neon space, catch glowing notes, and rebuild a lost song across the stars.
+          No stress, no hard fail—just rhythm, motion, and atmosphere.
+        </p>
 
-        <div class="feature-grid">
-          <div class="feature">
-            <span class="feature-kicker">Touch</span>
-            <strong>Slide to steer</strong>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <span class="kicker">Style</span>
+            <strong>Synthwave</strong>
           </div>
-          <div class="feature">
-            <span class="feature-kicker">Vibe</span>
-            <strong>Relaxing space</strong>
+          <div class="stat-card">
+            <span class="kicker">Goal</span>
+            <strong>Finish the track</strong>
           </div>
-          <div class="feature">
-            <span class="feature-kicker">Style</span>
-            <strong>Liquid glass UI</strong>
+          <div class="stat-card">
+            <span class="kicker">Feel</span>
+            <strong>Relaxed</strong>
           </div>
         </div>
 
-        <div class="button-row" id="menuButtons"></div>
+        <div id="menuButtons" class="button-row"></div>
 
-        <p class="note">Tip: collect shards to keep your harmony high and unlock new ambient zones.</p>
-      </div>
+        <p class="fineprint">
+          Tip: headphones make the layers way better.
+        </p>
+      </section>
     </div>
 
     <div id="pauseScreen" class="screen hidden">
-      <div class="glass-card">
+      <section class="glass-panel">
         <p class="eyebrow">Paused</p>
-        <h2>Take a breath</h2>
-        <p class="lede small">The stars are still moving. You can hop right back in whenever.</p>
-        <div class="button-row" id="pauseButtons"></div>
-      </div>
+        <h2>Hold that vibe</h2>
+        <p class="lede small">Everything is still glowing. You can jump back in whenever.</p>
+        <div id="pauseButtons" class="button-row"></div>
+      </section>
     </div>
 
-    <div id="finishBanner" class="finish-banner hidden">
-      <span id="finishText">Constellation complete.</span>
+    <div id="completeScreen" class="screen hidden">
+      <section class="glass-panel">
+        <p class="eyebrow">Track complete</p>
+        <h2 id="completeTitle">Neon Highway</h2>
+        <p class="lede small" id="completeText">The signal is back in full color.</p>
+        <div class="complete-stats">
+          <div><span>Score</span><strong id="finalScore">0</strong></div>
+          <div><span>Notes</span><strong id="finalNotes">0</strong></div>
+          <div><span>Rank</span><strong id="finalRank">C</strong></div>
+        </div>
+        <div id="completeButtons" class="button-row"></div>
+      </section>
     </div>
+
+    <div id="banner" class="banner hidden">Harmony restored.</div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/dashersw/liquid-glass-js@main/container.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/dashersw/liquid-glass-js@main/button.js"></script>
+  <script src="./audio.js"></script>
   <script src="./game.js"></script>
 </body>
 </html>
